@@ -1,0 +1,9 @@
+FROM golang:1.10.3-stretch
+
+RUN apt-get update && apt-get install -y jq curl && \
+	rm -rf /var/lib/apt/lists/*
+
+COPY asset /app/asset
+COPY data /var/lib/db/asset/data
+WORKDIR /app
+CMD ["./asset"]

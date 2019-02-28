@@ -1,0 +1,46 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: fivecolors-server
+spec:
+  selector:
+    app: fivecolors-server
+  type: NodePort
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fivecolors-server
+  labels:
+    app: fivecolors-server
+    tier: be
+    version: 0.0.1
+spec:
+  selector:
+    matchLabels:
+      app: fivecolors-server
+      tier: be
+      version: 0.0.1
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: fivecolors-server
+        tier: be
+        version: 0.0.1
+    spec:
+      containers:
+        - name: fivecolors-server
+          image: fivecolors-server:0.0.1
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SERVER_BINDADDRESS
+              value: 0.0.0.0:8080
+            - name: DB_DSN
+              value: postgres://postgres:@postgres:5432/fivecolors?sslmode=disable

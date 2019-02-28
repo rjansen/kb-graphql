@@ -1,0 +1,89 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: postgres-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/Users/raphaeljansen/Projects/Elysion/FiveColors/storage/db/postgres/data"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: postgres-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: postgres
+spec:
+  selector:
+    app: postgres
+  type: NodePort
+  ports:
+    - name: postgres
+      protocol: TCP
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+    version: 10.4-alpine
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+      tier: be
+      version: 10.4-alpine
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: postgres
+        tier: be
+        version: 10.4-alpine
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:10.4-alpine
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - mountPath: "/var/lib/postgresql/data/pgdata"
+              name: postgres-storage
+            - mountPath: "/docker-entrypoint-initdb.d"
+              name: postgres-init-storage
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_DB
+              value: fivecolors
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              value:
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: postgres-claim
+        - name: postgres-init-storage
+          hostPath:
+            path: /Users/raphaeljansen/Projects/Elysion/FiveColors/storage/db/postgres/init
+            type: Directory
