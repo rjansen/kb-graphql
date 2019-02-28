@@ -19,6 +19,10 @@ type Resolver struct {
 	tree yggdrasil.Tree
 }
 
+func NewResolver(tree yggdrasil.Tree) *Resolver {
+	return &Resolver{tree: tree}
+}
+
 func (r *Resolver) Mutation() graphql.MutationResolver {
 	return &mutationResolver{r}
 }
