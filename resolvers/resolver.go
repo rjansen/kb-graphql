@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	collectionFmt = "environments/development/kb-graphql/%s"
+	collectionFmt = "environments/development/%s"
 )
 
 type Resolver struct {

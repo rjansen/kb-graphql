@@ -60,5 +60,9 @@ func Execute(tree yggdrasil.Tree, schema Schema, request Request) *Response {
 		context.Background(),
 		graphql.NewRequestContext(doc, request.Query, vars),
 	)
+
+	if op.Operation == ast.Mutation {
+		return &Response{Response: schema.Mutation(ctx, op)}
+	}
 	return &Response{Response: schema.Query(ctx, op)}
 }
