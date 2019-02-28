@@ -1,22 +1,25 @@
 package validator
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
+
+	"errors"
 )
 
 var (
 	ErrValidate = errors.New("ErrValidate")
 )
 
-type errors []error
+type errorList []error
 
-func (errs errors) Error() string {
+func (errs errorList) Error() string {
 	var builder strings.Builder
 	for _, err := range errs {
 		builder.WriteString(err.Error())
 	}
-	builder.String()
+	return builder.String()
 }
 
 type Validator func() error
@@ -28,7 +31,7 @@ func ValidateAll(validators ...Validator) Validator {
 }
 
 func Validate(validators ...Validator) error {
-	var validateErrs errors
+	var validateErrs errorList
 	for _, v := range validators {
 		validateErrs = append(validateErrs, v())
 	}
@@ -50,7 +53,7 @@ func IsIn(s string, values ...string) error {
 			return nil
 		}
 	}
-	return errors.Errorf("ErrValueNotIn:%s", values)
+	return fmt.Errorf("ErrValueNotIn:%s", values)
 }
 
 func ValidateIsBlank(s string) Validator {

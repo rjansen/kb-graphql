@@ -1,20 +1,13 @@
-package model
+package graphql
 
 import (
-	"github.com/rjansen/fivecolors/core/errors"
-	"github.com/rjansen/fivecolors/core/graphql"
+	"github.com/99designs/gqlgen/graphql"
 )
 
-var (
-	ErrInvalidState = errors.New("ErrInvalidState")
-)
-
-func NewSchema(resolver *Resolver) graphql.Schema {
-	return graphql.NewSchema(
-		NewExecutableSchema(
-			Config{
-				Resolvers: resolver,
-			},
-		),
+func NewSchema(resolver ResolverRoot) graphql.ExecutableSchema {
+	return NewExecutableSchema(
+		Config{
+			Resolvers: resolver,
+		},
 	)
 }
