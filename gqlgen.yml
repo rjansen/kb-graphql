@@ -4,7 +4,8 @@
 # for detailed .gqlgen.yml documentation.
 
 schema:
-- schema.graphql
+- read-schema.graphql
+- write-schema.graphql
 
 exec:
   filename: graphql/gqlgen.go

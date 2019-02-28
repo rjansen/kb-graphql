@@ -33,6 +33,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Mutation() MutationResolver
 	Query() QueryResolver
 }
 
@@ -60,6 +61,12 @@ type ComplexityRoot struct {
 		Flavor      func(childComplexity int) int
 	}
 
+	Mutation struct {
+		SetBook  func(childComplexity int, book types.BookWrite) int
+		SetAudio func(childComplexity int, audio types.AudioWrite) int
+		SetVideo func(childComplexity int, video types.VideoWrite) int
+	}
+
 	Query struct {
 		Book      func(childComplexity int, id string) int
 		Audio     func(childComplexity int, id string) int
@@ -80,12 +87,62 @@ type ComplexityRoot struct {
 	}
 }
 
+type MutationResolver interface {
+	SetBook(ctx context.Context, book types.BookWrite) (*types.Book, error)
+	SetAudio(ctx context.Context, audio types.AudioWrite) (*types.Audio, error)
+	SetVideo(ctx context.Context, video types.VideoWrite) (*types.Video, error)
+}
 type QueryResolver interface {
 	Book(ctx context.Context, id string) (*types.Book, error)
 	Audio(ctx context.Context, id string) (*types.Audio, error)
 	Video(ctx context.Context, id string) (*types.Video, error)
 	ProductBy(ctx context.Context, filter *types.ProductFilter) (types.Product, error)
 	Search(ctx context.Context, filter *types.ProductFilter) (types.SearchResult, error)
+}
+
+func field_Mutation_setBook_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	args := map[string]interface{}{}
+	var arg0 types.BookWrite
+	if tmp, ok := rawArgs["book"]; ok {
+		var err error
+		arg0, err = UnmarshalBookWrite(tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["book"] = arg0
+	return args, nil
+
+}
+
+func field_Mutation_setAudio_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	args := map[string]interface{}{}
+	var arg0 types.AudioWrite
+	if tmp, ok := rawArgs["audio"]; ok {
+		var err error
+		arg0, err = UnmarshalAudioWrite(tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["audio"] = arg0
+	return args, nil
+
+}
+
+func field_Mutation_setVideo_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	args := map[string]interface{}{}
+	var arg0 types.VideoWrite
+	if tmp, ok := rawArgs["video"]; ok {
+		var err error
+		arg0, err = UnmarshalVideoWrite(tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["video"] = arg0
+	return args, nil
+
 }
 
 func field_Query_book_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
@@ -329,6 +386,42 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Book.Flavor(childComplexity), true
 
+	case "Mutation.setBook":
+		if e.complexity.Mutation.SetBook == nil {
+			break
+		}
+
+		args, err := field_Mutation_setBook_args(rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SetBook(childComplexity, args["book"].(types.BookWrite)), true
+
+	case "Mutation.setAudio":
+		if e.complexity.Mutation.SetAudio == nil {
+			break
+		}
+
+		args, err := field_Mutation_setAudio_args(rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SetAudio(childComplexity, args["audio"].(types.AudioWrite)), true
+
+	case "Mutation.setVideo":
+		if e.complexity.Mutation.SetVideo == nil {
+			break
+		}
+
+		args, err := field_Mutation_setVideo_args(rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SetVideo(childComplexity, args["video"].(types.VideoWrite)), true
+
 	case "Query.book":
 		if e.complexity.Query.Book == nil {
 			break
@@ -466,7 +559,20 @@ func (e *executableSchema) Query(ctx context.Context, op *ast.OperationDefinitio
 }
 
 func (e *executableSchema) Mutation(ctx context.Context, op *ast.OperationDefinition) *graphql.Response {
-	return graphql.ErrorResponse(ctx, "mutations are not supported")
+	ec := executionContext{graphql.GetRequestContext(ctx), e}
+
+	buf := ec.RequestMiddleware(ctx, func(ctx context.Context) []byte {
+		data := ec._Mutation(ctx, op.SelectionSet)
+		var buf bytes.Buffer
+		data.MarshalGQL(&buf)
+		return buf.Bytes()
+	})
+
+	return &graphql.Response{
+		Data:       buf,
+		Errors:     ec.Errors,
+		Extensions: ec.Extensions,
+	}
 }
 
 func (e *executableSchema) Subscription(ctx context.Context, op *ast.OperationDefinition) func() *graphql.Response {
@@ -962,6 +1068,146 @@ func (ec *executionContext) _Book_flavor(ctx context.Context, field graphql.Coll
 		return graphql.Null
 	}
 	return graphql.MarshalString(*res)
+}
+
+var mutationImplementors = []string{"Mutation"}
+
+// nolint: gocyclo, errcheck, gas, goconst
+func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
+	fields := graphql.CollectFields(ctx, sel, mutationImplementors)
+
+	ctx = graphql.WithResolverContext(ctx, &graphql.ResolverContext{
+		Object: "Mutation",
+	})
+
+	out := graphql.NewOrderedMap(len(fields))
+	invalid := false
+	for i, field := range fields {
+		out.Keys[i] = field.Alias
+
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Mutation")
+		case "setBook":
+			out.Values[i] = ec._Mutation_setBook(ctx, field)
+		case "setAudio":
+			out.Values[i] = ec._Mutation_setAudio(ctx, field)
+		case "setVideo":
+			out.Values[i] = ec._Mutation_setVideo(ctx, field)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+
+	if invalid {
+		return graphql.Null
+	}
+	return out
+}
+
+// nolint: vetshadow
+func (ec *executionContext) _Mutation_setBook(ctx context.Context, field graphql.CollectedField) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := field_Mutation_setBook_args(rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx := &graphql.ResolverContext{
+		Object: "Mutation",
+		Args:   args,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SetBook(rctx, args["book"].(types.BookWrite))
+	})
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*types.Book)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+
+	if res == nil {
+		return graphql.Null
+	}
+
+	return ec._Book(ctx, field.Selections, res)
+}
+
+// nolint: vetshadow
+func (ec *executionContext) _Mutation_setAudio(ctx context.Context, field graphql.CollectedField) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := field_Mutation_setAudio_args(rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx := &graphql.ResolverContext{
+		Object: "Mutation",
+		Args:   args,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SetAudio(rctx, args["audio"].(types.AudioWrite))
+	})
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*types.Audio)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+
+	if res == nil {
+		return graphql.Null
+	}
+
+	return ec._Audio(ctx, field.Selections, res)
+}
+
+// nolint: vetshadow
+func (ec *executionContext) _Mutation_setVideo(ctx context.Context, field graphql.CollectedField) graphql.Marshaler {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() { ec.Tracer.EndFieldExecution(ctx) }()
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := field_Mutation_setVideo_args(rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx := &graphql.ResolverContext{
+		Object: "Mutation",
+		Args:   args,
+		Field:  field,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp := ec.FieldMiddleware(ctx, nil, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SetVideo(rctx, args["video"].(types.VideoWrite))
+	})
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*types.Video)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+
+	if res == nil {
+		return graphql.Null
+	}
+
+	return ec._Video(ctx, field.Selections, res)
 }
 
 var queryImplementors = []string{"Query"}
@@ -3030,6 +3276,124 @@ func (ec *executionContext) _SearchResult(ctx context.Context, sel ast.Selection
 	}
 }
 
+func UnmarshalAudioWrite(v interface{}) (types.AudioWrite, error) {
+	var it types.AudioWrite
+	var asMap = v.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+			it.ID, err = graphql.UnmarshalID(v)
+			if err != nil {
+				return it, err
+			}
+		case "name":
+			var err error
+			it.Name, err = graphql.UnmarshalString(v)
+			if err != nil {
+				return it, err
+			}
+		case "description":
+			var err error
+			var ptr1 string
+			if v != nil {
+				ptr1, err = graphql.UnmarshalString(v)
+				it.Description = &ptr1
+			}
+
+			if err != nil {
+				return it, err
+			}
+		case "value":
+			var err error
+			it.Value, err = graphql.UnmarshalFloat(v)
+			if err != nil {
+				return it, err
+			}
+		case "singer":
+			var err error
+			it.Singer, err = graphql.UnmarshalString(v)
+			if err != nil {
+				return it, err
+			}
+		case "compositor":
+			var err error
+			it.Compositor, err = graphql.UnmarshalString(v)
+			if err != nil {
+				return it, err
+			}
+		case "duration":
+			var err error
+			it.Duration, err = graphql.UnmarshalFloat(v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func UnmarshalBookWrite(v interface{}) (types.BookWrite, error) {
+	var it types.BookWrite
+	var asMap = v.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+			it.ID, err = graphql.UnmarshalID(v)
+			if err != nil {
+				return it, err
+			}
+		case "name":
+			var err error
+			it.Name, err = graphql.UnmarshalString(v)
+			if err != nil {
+				return it, err
+			}
+		case "description":
+			var err error
+			var ptr1 string
+			if v != nil {
+				ptr1, err = graphql.UnmarshalString(v)
+				it.Description = &ptr1
+			}
+
+			if err != nil {
+				return it, err
+			}
+		case "value":
+			var err error
+			it.Value, err = graphql.UnmarshalFloat(v)
+			if err != nil {
+				return it, err
+			}
+		case "isbn":
+			var err error
+			it.Isbn, err = graphql.UnmarshalString(v)
+			if err != nil {
+				return it, err
+			}
+		case "author":
+			var err error
+			it.Author, err = graphql.UnmarshalString(v)
+			if err != nil {
+				return it, err
+			}
+		case "flavor":
+			var err error
+			it.Flavor, err = graphql.UnmarshalString(v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func UnmarshalProductFilter(v interface{}) (types.ProductFilter, error) {
 	var it types.ProductFilter
 	var asMap = v.(map[string]interface{})
@@ -3075,6 +3439,82 @@ func UnmarshalProductFilter(v interface{}) (types.ProductFilter, error) {
 	return it, nil
 }
 
+func UnmarshalVideoWrite(v interface{}) (types.VideoWrite, error) {
+	var it types.VideoWrite
+	var asMap = v.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+			it.ID, err = graphql.UnmarshalID(v)
+			if err != nil {
+				return it, err
+			}
+		case "name":
+			var err error
+			it.Name, err = graphql.UnmarshalString(v)
+			if err != nil {
+				return it, err
+			}
+		case "description":
+			var err error
+			var ptr1 string
+			if v != nil {
+				ptr1, err = graphql.UnmarshalString(v)
+				it.Description = &ptr1
+			}
+
+			if err != nil {
+				return it, err
+			}
+		case "value":
+			var err error
+			it.Value, err = graphql.UnmarshalFloat(v)
+			if err != nil {
+				return it, err
+			}
+		case "director":
+			var err error
+			it.Director, err = graphql.UnmarshalString(v)
+			if err != nil {
+				return it, err
+			}
+		case "writer":
+			var err error
+			it.Writer, err = graphql.UnmarshalString(v)
+			if err != nil {
+				return it, err
+			}
+		case "actors":
+			var err error
+			var rawIf1 []interface{}
+			if v != nil {
+				if tmp1, ok := v.([]interface{}); ok {
+					rawIf1 = tmp1
+				} else {
+					rawIf1 = []interface{}{v}
+				}
+			}
+			it.Actors = make([]string, len(rawIf1))
+			for idx1 := range rawIf1 {
+				it.Actors[idx1], err = graphql.UnmarshalString(rawIf1[idx1])
+			}
+			if err != nil {
+				return it, err
+			}
+		case "duration":
+			var err error
+			it.Duration, err = graphql.UnmarshalFloat(v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) FieldMiddleware(ctx context.Context, obj interface{}, next graphql.Resolver) (ret interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3105,7 +3545,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var parsedSchema = gqlparser.MustLoadSchema(
-	&ast.Source{Name: "schema.graphql", Input: `interface Product {
+	&ast.Source{Name: "read-schema.graphql", Input: `interface Product {
   id: ID!
   name: String!
   description: String
@@ -3157,6 +3597,43 @@ type Query {
   video(id: ID!): Video
   productBy(filter: ProductFilter): Product
   search(filter: ProductFilter): SearchResult
+}
+`},
+	&ast.Source{Name: "write-schema.graphql", Input: `input BookWrite {
+  id: ID!
+  name: String!
+  description: String
+  value: Float!
+  isbn: String!
+  author: String!
+  flavor: String!
+}
+
+input AudioWrite {
+  id: ID!
+  name: String!
+  description: String
+  value: Float!
+  singer: String!
+  compositor: String!
+  duration: Float!
+}
+
+input VideoWrite {
+  id: ID!
+  name: String!
+  description: String
+  value: Float!
+  director: String!
+  writer: String!
+  actors: [String!]!
+  duration: Float!
+}
+
+type Mutation {
+  setBook(book: BookWrite!): Book
+  setAudio(audio: AudioWrite!): Audio
+  setVideo(video: VideoWrite!): Video
 }
 `},
 )

@@ -9,8 +9,23 @@ import (
 
 type Resolver struct{}
 
+func (r *Resolver) Mutation() graphql.MutationResolver {
+	return &mutationResolver{r}
+}
 func (r *Resolver) Query() graphql.QueryResolver {
 	return &queryResolver{r}
+}
+
+type mutationResolver struct{ *Resolver }
+
+func (r *mutationResolver) SetBook(ctx context.Context, book types.BookWrite) (*types.Book, error) {
+	panic("not implemented")
+}
+func (r *mutationResolver) SetAudio(ctx context.Context, audio types.AudioWrite) (*types.Audio, error) {
+	panic("not implemented")
+}
+func (r *mutationResolver) SetVideo(ctx context.Context, video types.VideoWrite) (*types.Video, error) {
+	panic("not implemented")
 }
 
 type queryResolver struct{ *Resolver }

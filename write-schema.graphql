@@ -1,0 +1,36 @@
+input BookWrite {
+  id: ID!
+  name: String!
+  description: String
+  value: Float!
+  isbn: String!
+  author: String!
+  flavor: String!
+}
+
+input AudioWrite {
+  id: ID!
+  name: String!
+  description: String
+  value: Float!
+  singer: String!
+  compositor: String!
+  duration: Float!
+}
+
+input VideoWrite {
+  id: ID!
+  name: String!
+  description: String
+  value: Float!
+  director: String!
+  writer: String!
+  actors: [String!]!
+  duration: Float!
+}
+
+type Mutation {
+  setBook(book: BookWrite!): Book
+  setAudio(audio: AudioWrite!): Audio
+  setVideo(video: VideoWrite!): Video
+}

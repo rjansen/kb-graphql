@@ -15,6 +15,16 @@ type Audio struct {
 func (Audio) IsProduct()      {}
 func (Audio) IsSearchResult() {}
 
+type AudioWrite struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+	Value       float64 `json:"value"`
+	Singer      string  `json:"singer"`
+	Compositor  string  `json:"compositor"`
+	Duration    float64 `json:"duration"`
+}
+
 type Book struct {
 	ID          string   `json:"id"`
 	Name        string   `json:"name"`
@@ -27,6 +37,16 @@ type Book struct {
 
 func (Book) IsProduct()      {}
 func (Book) IsSearchResult() {}
+
+type BookWrite struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+	Value       float64 `json:"value"`
+	Isbn        string  `json:"isbn"`
+	Author      string  `json:"author"`
+	Flavor      string  `json:"flavor"`
+}
 
 type Product interface {
 	IsProduct()
@@ -55,3 +75,14 @@ type Video struct {
 
 func (Video) IsProduct()      {}
 func (Video) IsSearchResult() {}
+
+type VideoWrite struct {
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Description *string  `json:"description"`
+	Value       float64  `json:"value"`
+	Director    string   `json:"director"`
+	Writer      string   `json:"writer"`
+	Actors      []string `json:"actors"`
+	Duration    float64  `json:"duration"`
+}
