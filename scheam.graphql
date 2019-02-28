@@ -1,0 +1,53 @@
+interface Product {
+  id: ID!
+  name: String!
+  description: String
+  value: Float
+}
+
+type Book implements Product {
+  id: ID!
+  name: String!
+  description: String
+  value: Float
+  isbn: String!
+  author: String!
+  flavor: String
+}
+
+type Audio implements Product {
+  id: ID!
+  name: String!
+  description: String
+  value: Float
+  singer: String!
+  compositor: String!
+  duration: Float
+}
+
+type Video implements Product {
+  id: ID!
+  name: String!
+  description: String
+  value: Float
+  director: String!
+  writer: String!
+  actors: [String!]!
+  duration: Float
+}
+
+input ProductFilter {
+  id: ID
+  name: String
+  value: Float
+}
+
+union SearchResult = Book | Audio | Video
+
+type Query {
+  book(id: ID!) Book
+  audio(id: ID!) Audio
+  video(id: ID!) Video
+  productBy(filter: ProductFilter) Product
+  search(filter: ProductFilter) SearchResult
+}
