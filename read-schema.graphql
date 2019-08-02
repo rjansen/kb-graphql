@@ -48,6 +48,6 @@ type Query {
   book(id: ID!): Book
   audio(id: ID!): Audio
   video(id: ID!): Video
-  productBy(filter: ProductFilter): Product
-  search(filter: ProductFilter): SearchResult
+  productBy(filter: ProductFilter): [Product!]
+  search(filter: ProductFilter): [SearchResult!]
 }

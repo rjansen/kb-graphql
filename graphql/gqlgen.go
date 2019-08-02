@@ -96,8 +96,8 @@ type QueryResolver interface {
 	Book(ctx context.Context, id string) (*types.Book, error)
 	Audio(ctx context.Context, id string) (*types.Audio, error)
 	Video(ctx context.Context, id string) (*types.Video, error)
-	ProductBy(ctx context.Context, filter *types.ProductFilter) (types.Product, error)
-	Search(ctx context.Context, filter *types.ProductFilter) (types.SearchResult, error)
+	ProductBy(ctx context.Context, filter *types.ProductFilter) ([]types.Product, error)
+	Search(ctx context.Context, filter *types.ProductFilter) ([]types.SearchResult, error)
 }
 
 func field_Mutation_setBook_args(rawArgs map[string]interface{}) (map[string]interface{}, error) {
@@ -1403,11 +1403,43 @@ func (ec *executionContext) _Query_productBy(ctx context.Context, field graphql.
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(types.Product)
+	res := resTmp.([]types.Product)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 
-	return ec._Product(ctx, field.Selections, &res)
+	arr1 := make(graphql.Array, len(res))
+	var wg sync.WaitGroup
+
+	isLen1 := len(res) == 1
+	if !isLen1 {
+		wg.Add(len(res))
+	}
+
+	for idx1 := range res {
+		idx1 := idx1
+		rctx := &graphql.ResolverContext{
+			Index:  &idx1,
+			Result: &res[idx1],
+		}
+		ctx := graphql.WithResolverContext(ctx, rctx)
+		f := func(idx1 int) {
+			if !isLen1 {
+				defer wg.Done()
+			}
+			arr1[idx1] = func() graphql.Marshaler {
+
+				return ec._Product(ctx, field.Selections, &res[idx1])
+			}()
+		}
+		if isLen1 {
+			f(idx1)
+		} else {
+			go f(idx1)
+		}
+
+	}
+	wg.Wait()
+	return arr1
 }
 
 // nolint: vetshadow
@@ -1434,11 +1466,43 @@ func (ec *executionContext) _Query_search(ctx context.Context, field graphql.Col
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(types.SearchResult)
+	res := resTmp.([]types.SearchResult)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 
-	return ec._SearchResult(ctx, field.Selections, &res)
+	arr1 := make(graphql.Array, len(res))
+	var wg sync.WaitGroup
+
+	isLen1 := len(res) == 1
+	if !isLen1 {
+		wg.Add(len(res))
+	}
+
+	for idx1 := range res {
+		idx1 := idx1
+		rctx := &graphql.ResolverContext{
+			Index:  &idx1,
+			Result: &res[idx1],
+		}
+		ctx := graphql.WithResolverContext(ctx, rctx)
+		f := func(idx1 int) {
+			if !isLen1 {
+				defer wg.Done()
+			}
+			arr1[idx1] = func() graphql.Marshaler {
+
+				return ec._SearchResult(ctx, field.Selections, &res[idx1])
+			}()
+		}
+		if isLen1 {
+			f(idx1)
+		} else {
+			go f(idx1)
+		}
+
+	}
+	wg.Wait()
+	return arr1
 }
 
 // nolint: vetshadow
@@ -3595,8 +3659,8 @@ type Query {
   book(id: ID!): Book
   audio(id: ID!): Audio
   video(id: ID!): Video
-  productBy(filter: ProductFilter): Product
-  search(filter: ProductFilter): SearchResult
+  productBy(filter: ProductFilter): [Product!]
+  search(filter: ProductFilter): [SearchResult!]
 }
 `},
 	&ast.Source{Name: "write-schema.graphql", Input: `input BookWrite {

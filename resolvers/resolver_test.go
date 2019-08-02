@@ -15,6 +15,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func stringPointer(s string) *string {
+	return &s
+}
+
 type testQueryResolver struct {
 	name      string
 	tree      yggdrasil.Tree
@@ -92,10 +96,17 @@ func TestQueryResolver(test *testing.T) {
 	scenarios := []testQueryResolver{
 		{
 			name: "Resolves all query fields successfully",
+			tree: nil,
 			mockSetup: map[string]interface{}{
-				"products/mock_book":  types.Book{},
-				"products/mock_audio": types.Audio{},
-				"products/mock_video": types.Video{},
+				"products/mock_book": types.BookWrite{
+					ID: "products/mock_book", Name: "Mock Book", Value: 100.0,
+				},
+				"products/mock_audio": types.AudioWrite{
+					ID: "products/mock_audio", Name: "Mock Audio", Value: 50.0,
+				},
+				"products/mock_video": types.VideoWrite{
+					ID: "products/mock_video", Name: "Mock Video", Value: 1550.0,
+				},
 			},
 			bookID:  "mock_book",
 			audioID: "mock_audio",
@@ -136,6 +147,123 @@ func TestQueryResolver(test *testing.T) {
 				for key, result := range results {
 					assert.NotZerof(t, result, "field invalid instance: field=%s", key)
 				}
+			},
+		)
+	}
+}
+
+type testFilterQueryResolver struct {
+	name      string
+	tree      yggdrasil.Tree
+	mockSetup map[string]interface{}
+	productBy types.ProductFilter
+	search    types.ProductFilter
+}
+
+func (scenario *testFilterQueryResolver) setup(t *testing.T) {
+	var (
+		roots     = yggdrasil.NewRoots()
+		errLogger = l.Register(&roots, l.NewZapLoggerDefault())
+		client    = fmock.NewClientMock()
+		errClient = firestore.Register(&roots, client)
+	)
+	require.Nil(t, errLogger, "setup logger error")
+	require.Nil(t, errClient, "setup firestore error")
+
+	if len(scenario.mockSetup) > 0 {
+
+		for documentKey, document := range scenario.mockSetup {
+			var (
+				snapshot    = fmock.NewDocumentSnapshotMock()
+				documentRef = fmock.NewDocumentRefMock()
+				dataToMock  func(mock.Arguments)
+			)
+
+			switch realDocument := document.(type) {
+			case types.Book:
+				dataToMock = func(args mock.Arguments) {
+					arg := args.Get(0)
+					if arg != nil {
+						product := arg.(*types.Book)
+						*product = realDocument
+					}
+				}
+			case types.Audio:
+				dataToMock = func(args mock.Arguments) {
+					arg := args.Get(0)
+					if arg != nil {
+						product := arg.(*types.Audio)
+						*product = realDocument
+					}
+				}
+
+			case types.Video:
+				dataToMock = func(args mock.Arguments) {
+					arg := args.Get(0)
+					if arg != nil {
+						product := arg.(*types.Video)
+						*product = realDocument
+					}
+				}
+			}
+
+			snapshot.On("DataTo", mock.Anything).Run(dataToMock).Return(nil)
+			documentRef.On("Get", mock.Anything).Return(snapshot, nil)
+			client.On("Collection", fmt.Sprintf(collectionFmt, scenario.collection)).Return(documentRef)
+		}
+	}
+
+	scenario.tree = roots.NewTreeDefault()
+}
+
+func (scenario *testFilterQueryResolver) tearDown(*testing.T) {
+	if scenario.tree != nil {
+		scenario.tree.Close()
+	}
+}
+
+func TestFilterQueryResolver(test *testing.T) {
+	scenarios := []testFilterQueryResolver{
+		{
+			name: "Resolves all query fields successfully",
+			tree: nil,
+			mockSetup: map[string]interface{}{
+				"products/mock_book": types.BookWrite{
+					ID: "products/mock_book", Name: "Mock Book", Value: 100.0,
+				},
+				"products/mock_audio": types.AudioWrite{
+					ID: "products/mock_audio", Name: "Mock Audio", Value: 50.0,
+				},
+				"products/mock_video": types.VideoWrite{
+					ID: "products/mock_video", Name: "Mock Video", Value: 1550.0,
+				},
+			},
+			productBy: types.ProductFilter{
+				Name: stringPointer("Mock"),
+			},
+		},
+	}
+
+	for index, scenario := range scenarios {
+		test.Run(
+			fmt.Sprintf("%d-%s", index, scenario.name),
+			func(t *testing.T) {
+				scenario.setup(t)
+				defer scenario.tearDown(t)
+
+				var (
+					ctx           = context.Background()
+					queryResolver = queryResolver{
+						&Resolver{scenario.tree},
+					}
+				)
+				require.NotNil(t, queryResolver, "query_resolver invalid instance")
+				require.NotNil(t, queryResolver.Resolver, "resolver invalid instance")
+
+				results, err := queryResolver.ProductBy(ctx, &scenario.productBy)
+
+				assert.Nil(t, err, "field resolve error")
+				assert.NotZero(t, results, "field invalid instance")
 			},
 		)
 	}
